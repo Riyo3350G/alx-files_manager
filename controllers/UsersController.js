@@ -33,7 +33,27 @@ class UsersController {
     await collection.insertOne(newUser);
     await client.close();
 
-    return res.status(201).json({ id: newUser._id, email }); // Return only email and ID
+    return res.status(201).json({ id: newUser._id, email });
+  }
+
+  static async getMe(req, res) {
+    const { userId } = req;
+
+    const client = await MongoClient.connect('mongodb://localhost:27017/files_manager');
+    const db = client.db();
+    const collection = db.collection('users');
+
+    const user = await collection.findOne({ _id: userId });
+
+    await client.close();
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    delete user.password;
+
+    return res.status(200).json(user);
   }
 }
 

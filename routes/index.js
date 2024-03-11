@@ -2,6 +2,7 @@ import { Router } from 'express';
 
 const AppController = require('../controllers/AppController');
 const UsersController = require('../controllers/UsersController');
+const AuthController = require('../controllers/AuthController');
 
 function routesController(app) {
   const router = Router();
@@ -16,7 +17,10 @@ function routesController(app) {
     UsersController.postNew(req, res);
   });
   router.get('/connect', (req, res) => {
-    UsersController.getMe(req, res);
+    AuthController.getConnect(req, res);
+  });
+  router.get('/disconnect', (req, res) => {
+    AuthController.getDisconnect(req, res);
   });
 }
 
