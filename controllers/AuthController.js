@@ -1,56 +1,28 @@
 import sha1 from 'sha1';
 import { v4 as uuidv4 } from 'uuid';
-import dbClient from '../utils/db';
+import userUtils from '../utils/user';
 import redisClient from '../utils/redis';
 
 class AuthController {
   static async getConnect(req, res) {
-    const auth = req.header('Authorization');
-    if (!auth) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+    const { email, password } = req.headers;
+    if (!email) return res.status(400).json({ error: 'Missing email' });
+    if (!password) return res.status(400).json({ error: 'Missing password' });
 
-    const buff = Buffer.from(auth.replace('Basic ', ''), 'base64');
-    const credentials = {
-      email: buff.toString('utf-8').split(':')[0],
-      password: buff.toString('utf-8').split(':')[1],
-    };
-
-    if (!credentials.email || !credentials.password) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    const user = await dbClient.users.findOne({ email: credentials.email });
-    if (!user) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    if (user.password !== sha1(credentials.password)) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+    const user = await userUtils.getUser({ email, password: sha1(password) });
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const token = uuidv4();
     const key = `auth_${token}`;
-    const value = user._id;
-    const duration = 24 * 3600;
-
-    redisClient.set(key, value, duration);
+    await redisClient.set(key, user._id, 86400);
     return res.status(200).json({ token });
   }
 
   static async getDisconnect(req, res) {
-    const token = req.header('X-Token');
-    if (!token) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+    const { userId, key } = await userUtils.getUserIdAndKey(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const key = `auth_${token}`;
-    const value = await redisClient.get(key);
-    if (!value) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    redisClient.del(key);
+    await redisClient.del(key);
     return res.status(204).end();
   }
 }
