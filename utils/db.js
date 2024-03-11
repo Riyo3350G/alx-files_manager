@@ -1,4 +1,3 @@
-const { is } = require('express/lib/request');
 const { MongoClient } = require('mongodb');
 
 const host = process.env.DB_HOST || 'localhost';
@@ -15,13 +14,20 @@ class DBClient {
         this.db = false;
       }
     });
+  }
 
-    isAlive() {
-      return !!this.db;
-    }
+  isAlive() {
+    return Boolean(this.db);
+  }
 
-    async nbUsers() {
-      return this.db.collection('users').countDocuments();
-    }
+  async nbUsers() {
+    return this.db.collection('users').countDocuments();
+  }
+
+  async nbFiles() {
+    return this.db.collection('files').countDocuments();
   }
 }
+
+const dbClient = new DBClient();
+export default dbClient;
