@@ -2,7 +2,7 @@ import sha1 from 'sha1';
 import { ObjectID } from 'mongodb';
 import Queue from 'bull';
 import dbClient from '../utils/db';
-import redisClient from '../utils/redis';
+import userUtils from '../utils/user';
 
 const userQueue = new Queue('userQueue', 'redis://127.0.0.1:6379');
 
@@ -40,23 +40,11 @@ class UsersController {
   }
 
   static async getMe(request, response) {
-    const token = request.header('X-Token');
-    const key = `auth_${token}`;
-    const userId = await redisClient.get(key);
-    if (userId) {
-      const users = dbClient.db.collection('users');
-      const idObject = new ObjectID(userId);
-      users.findOne({ _id: idObject }, (err, user) => {
-        if (user) {
-          response.status(200).json({ id: userId, email: user.email });
-        } else {
-          response.status(401).json({ error: 'Unauthorized' });
-        }
-      });
-    } else {
-      console.log('Hupatikani!');
-      response.status(401).json({ error: 'Unauthorized' });
-    }
+    const { userId } = await userUtils.getUserIdAndKey(request);
+    if (!userId) return response.status(401).send({ error: 'Unauthorized' });
+    const user = await dbClient.users.findOne({ _id: ObjectID(userId) });
+    if (!user) return response.status(401).send({ error: 'Unauthorized' });
+    return response.status(200).send({ id: user._id, email: user.email });
   }
 }
 

@@ -2,16 +2,16 @@ import redisClient from './redis';
 import dbClient from './db';
 
 class UserUtils {
-  static async getUserIdAndKey(req) {
-    const object = { userId: null, key: null };
-    // eslint-disable-next-line no-undef
-    const token = req.header('X-Token');
-    if (!token) {
-      return object;
-    }
-    object.key = `auth_${token}`;
-    object.userId = await redisClient.get(object.key);
-    return object;
+  static async createUser(email, password) {
+    const user = await dbClient.users.insertOne({ email, password });
+    return user;
+  }
+
+  static async getUserIdAndKey(request) {
+    const token = request.header('X-Token');
+    const key = `auth_${token}`;
+    const userId = await redisClient.get(key);
+    return { userId, key };
   }
 
   static async getUser(query) {

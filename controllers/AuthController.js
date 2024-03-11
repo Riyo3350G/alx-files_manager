@@ -7,7 +7,7 @@ class AuthController {
   static async getConnect(request, response) {
     const Authorization = request.header('Authorization') || '';
 
-    const credentials = Authorization.split(' ')[1];
+    const credentials = Authorization.split('Basic ')[1];
 
     if (!credentials) { return response.status(401).send({ error: 'Unauthorized' }); }
 
@@ -21,10 +21,7 @@ class AuthController {
 
     const sha1Password = sha1(password);
 
-    const user = await userUtils.getUser({
-      email,
-      password: sha1Password,
-    });
+    const user = await userUtils.getUser({ email, password: sha1Password });
 
     if (!user) return response.status(401).send({ error: 'Unauthorized' });
 
