@@ -9,33 +9,42 @@ const userQueue = new Queue('userQueue');
 class UsersController {
   static async postNew(req, res) {
     const { email, password } = req.body;
-    if (!email) return res.status(400).json({ error: 'Missing email' });
-    if (!password) return res.status(400).json({ error: 'Missing password' });
 
-    const user = await dbClient.users.findOne({ email });
-    if (user) return res.status(400).json({ error: 'Already exist' });
+    if (!email) return res.status(400).send({ error: 'Missing email' });
+    if (!password) return res.status(400).send({ error: 'Missing password' });
 
-    const newUser = await dbClient.users.insertOne({
+    const sha1Password = sha1(password);
+
+    const user = await userUtils.getUser({ email });
+
+    if (user) return res.status(400).send({ error: 'Already exist' });
+
+    const result = await dbClient.users.insertOne({
       email,
-      password: sha1(password),
+      password: sha1Password,
     });
 
-    userQueue.add({
-      userId: newUser.insertedId,
+    const newUs = {
+      id: result.insertedId,
+      email,
+    };
+
+    await userQueue.add({
+      userId: result.insertedId.toString(),
     });
 
-    return res.status(201).json({ email, id: newUser.insertedId });
+    return res.status(201).send(newUs);
   }
 
   static async getMe(req, res) {
     const { userId } = await userUtils.getUserIdAndKey(req);
-    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const user = await dbClient.users.findOne({ _id: ObjectId(userId) });
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
-
-    return res.status(200).json({ email: user.email, id: user._id });
+    const user = await userUtils.getUser({ _id: ObjectId(userId) });
+    const procUser = { id: user._id, ...user };
+    delete procUser._id;
+    delete procUser.password;
+    return res.status(200).send(procUser);
   }
 }
 
-module.exports = UsersController;
+export default UsersController;
