@@ -37,23 +37,24 @@ class UsersController {
   }
 
   static async getMe(req, res) {
-    const { userId } = req;
+    const token = req.header('X-Token');
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
     const client = await MongoClient.connect('mongodb://localhost:27017/files_manager');
     const db = client.db();
     const collection = db.collection('users');
 
-    const user = await collection.findOne({ _id: userId });
+    const user = await collection.findOne({ _id: token });
+    if (!user) {
+      await client.close();
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
     await client.close();
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    delete user.password;
-
-    return res.status(200).json(user);
+    return res.status(200).json({ id: user._id, email: user.email });
   }
 }
 
