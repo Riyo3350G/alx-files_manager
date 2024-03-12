@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import AuthController from '../controllers/AuthController';
+import FilesController from '../controllers/FilesController';
 
 const AppController = require('../controllers/AppController');
 const UsersController = require('../controllers/UsersController');
@@ -24,6 +25,10 @@ function routesController(app) {
   });
   router.get('/users/me', (req, res) => {
     UsersController.getMe(req, res);
+  });
+
+  router.post('/files', (req, res) => {
+    FilesController.postUpload(req, res);
   });
 }
 
