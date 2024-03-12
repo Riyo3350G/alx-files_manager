@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { promises as fs } from 'fs';
 import { ObjectID } from 'mongodb';
+import mime from 'mime-types';
 import Queue from 'bull';
 import dbClient from '../utils/db';
 import userUtils from '../utils/user';
@@ -205,19 +206,58 @@ class FilesController {
 
   static async getFile(request, response) {
     const { userId } = await userUtils.getUserIdAndKey(request);
-    if (!userId) return response.status(401).send({ error: 'Unauthorized' });
-    const user = await dbClient.users.findOne({ _id: ObjectID(userId) });
     const { id } = request.params;
     const files = dbClient.db.collection('files');
     const idObject = new ObjectID(id);
-    const file = await files.findOne({ _id: idObject, userId: user._id });
-    if (!file) {
-      return response.status(404).json({ error: 'Not found' });
-    }
-    if (file.type === 'folder') {
-      return response.status(400).json({ error: 'A folder doesn\'t have content' });
-    }
-    return response.download(file.localPath, file.name);
+    files.findOne({ _id: idObject }, async (err, file) => {
+      if (!file) {
+        return response.status(404).json({ error: 'Not found' });
+      }
+      console.log(file.localPath);
+      if (file.isPublic) {
+        if (file.type === 'folder') {
+          return response.status(400).json({ error: "A folder doesn't have content" });
+        }
+        try {
+          let fileName = file.localPath;
+          const size = request.param('size');
+          if (size) {
+            fileName = `${file.localPath}_${size}`;
+          }
+          const data = await fs.readFile(fileName);
+          const contentType = mime.contentType(file.name);
+          return response.header('Content-Type', contentType).status(200).send(data);
+        } catch (error) {
+          console.log(error);
+          return response.status(404).json({ error: 'Not found' });
+        }
+      } else {
+        const user = await dbClient.users.findOne({ _id: ObjectID(userId) });
+        if (!user) {
+          return response.status(404).json({ error: 'Not found' });
+        }
+        if (file.userId.toString() === user._id.toString()) {
+          if (file.type === 'folder') {
+            return response.status(400).json({ error: "A folder doesn't have content" });
+          }
+          try {
+            let fileName = file.localPath;
+            const size = request.param('size');
+            if (size) {
+              fileName = `${file.localPath}_${size}`;
+            }
+            const contentType = mime.contentType(file.name);
+            return response.header('Content-Type', contentType).status(200).sendFile(fileName);
+          } catch (error) {
+            console.log(error);
+            return response.status(404).json({ error: 'Not found' });
+          }
+        } else {
+          console.log(`Wrong user: file.userId=${file.userId}; userId=${user._id}`);
+          return response.status(404).json({ error: 'Not found' });
+        }
+      }
+    });
   }
 }
 
