@@ -109,12 +109,15 @@ class FilesController {
   async getShow(request, response) {
     const { userId } = await userUtils.getUserIdAndKey(request);
     if (!userId) return response.status(401).send({ error: 'Unauthorized' });
-    const { fileId } = request.params;
+    const user = await dbClient.users.findOne({ _id: ObjectID(userId) });
+    const fileId = request.params.id;
     const files = dbClient.db.collection('files');
     const idObject = new ObjectID(fileId);
-    const file = await files.findOne({ _id: idObject, userId: ObjectID(userId) });
-    if (!file) return response.status(404).send({ error: 'Not found' });
-    return response.status(200).send(file);
+    const file = await files.findOne({ _id: idObject, userId: user._id });
+    if (!file) {
+      return response.status(404).json({ error: 'Not found' });
+    }
+    return response.status(200).json(file);
   }
 
   // eslint-disable-next-line class-methods-use-this
