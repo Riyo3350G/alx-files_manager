@@ -36,6 +36,12 @@ function routesController(app) {
   router.get('/files', (req, res) => {
     FilesController.getIndex(req, res);
   });
+  router.put('/files/:id/publish', (req, res) => {
+    FilesController.putPublish(req, res);
+  });
+  router.put('/files/:id/publish', (req, res) => {
+    FilesController.putUnublish(req, res);
+  });
 }
 
 export default routesController;

@@ -165,6 +165,42 @@ class FilesController {
     });
     return null;
   }
+
+  static async putPublish(request, response) {
+    const { userId } = await userUtils.getUserIdAndKey(request);
+    if (!userId) return response.status(401).send({ error: 'Unauthorized' });
+    const user = await dbClient.users.findOne({ _id: ObjectID(userId) });
+    const { id } = request.params;
+    const files = dbClient.db.collection('files');
+    const idObject = new ObjectID(id);
+    const newValue = { $set: { isPublic: true } };
+    const options = { returnOriginal: false };
+    files.findOneAndUpdate({ _id: idObject, userId: user._id }, newValue, options, (err, file) => {
+      if (!file.lastErrorObject.updatedExisting) {
+        return response.status(404).json({ error: 'Not found' });
+      }
+      return response.status(200).json(file.value);
+    });
+    return null;
+  }
+
+  static async putUnpublish(request, response) {
+    const { userId } = await userUtils.getUserIdAndKey(request);
+    if (!userId) return response.status(401).send({ error: 'Unauthorized' });
+    const user = await dbClient.users.findOne({ _id: ObjectID(userId) });
+    const { id } = request.params;
+    const files = dbClient.db.collection('files');
+    const idObject = new ObjectID(id);
+    const newValue = { $set: { isPublic: false } };
+    const options = { returnOriginal: false };
+    files.findOneAndUpdate({ _id: idObject, userId: user._id }, newValue, options, (err, file) => {
+      if (!file.lastErrorObject.updatedExisting) {
+        return response.status(404).json({ error: 'Not found' });
+      }
+      return response.status(200).json(file.value);
+    });
+    return null;
+  }
 }
 
 export default FilesController;
