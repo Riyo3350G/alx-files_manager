@@ -188,6 +188,7 @@ class FilesController {
     const { userId } = await userUtils.getUserIdAndKey(request);
     if (!userId) return response.status(401).send({ error: 'Unauthorized' });
     const user = await dbClient.users.findOne({ _id: ObjectID(userId) });
+
     const { id } = request.params;
     const files = dbClient.db.collection('files');
     const idObject = new ObjectID(id);
