@@ -202,6 +202,23 @@ class FilesController {
     });
     return null;
   }
+
+  static async getFile(request, response) {
+    const { userId } = await userUtils.getUserIdAndKey(request);
+    if (!userId) return response.status(401).send({ error: 'Unauthorized' });
+    const user = await dbClient.users.findOne({ _id: ObjectID(userId) });
+    const { id } = request.params;
+    const files = dbClient.db.collection('files');
+    const idObject = new ObjectID(id);
+    const file = await files.findOne({ _id: idObject, userId: user._id });
+    if (!file) {
+      return response.status(404).json({ error: 'Not found' });
+    }
+    if (file.type === 'folder') {
+      return response.status(400).json({ error: 'A folder doesn\'t have content' });
+    }
+    return response.download(file.localPath, file.name);
+  }
 }
 
 export default FilesController;
