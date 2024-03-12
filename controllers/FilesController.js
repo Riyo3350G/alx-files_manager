@@ -105,8 +105,7 @@ class FilesController {
     return null;
   }
 
-  // eslint-disable-next-line class-methods-use-this
-  async getShow(request, response) {
+  static async getShow(request, response) {
     const { userId } = await userUtils.getUserIdAndKey(request);
     if (!userId) return response.status(401).send({ error: 'Unauthorized' });
     const user = await dbClient.users.findOne({ _id: ObjectID(userId) });
@@ -120,8 +119,7 @@ class FilesController {
     return response.status(200).json(file);
   }
 
-  // eslint-disable-next-line class-methods-use-this
-  async getIndex(request, response) {
+  static async getIndex(request, response) {
     const { userId } = await userUtils.getUserIdAndKey(request);
     if (!userId) return response.status(401).send({ error: 'Unauthorized' });
     const user = await dbClient.users.findOne({ _id: ObjectID(userId) });
