@@ -121,9 +121,48 @@ class FilesController {
   async getIndex(request, response) {
     const { userId } = await userUtils.getUserIdAndKey(request);
     if (!userId) return response.status(401).send({ error: 'Unauthorized' });
+    const user = await dbClient.users.findOne({ _id: ObjectID(userId) });
+    const {
+      parentId,
+      page,
+    } = request.query;
+    const pageNum = page || 0;
     const files = dbClient.db.collection('files');
-    const filesList = await files.find({ userId: ObjectID(userId) }).toArray();
-    return response.status(200).send(filesList);
+    let query;
+    if (!parentId) {
+      query = { userId: user._id };
+    } else {
+      query = { userId: user._id, parentId: ObjectID(parentId) };
+    }
+    files.aggregate(
+      [
+        { $match: query },
+        { $sort: { _id: -1 } },
+        {
+          $facet: {
+            metadata: [{ $count: 'total' }, { $addFields: { page: parseInt(pageNum, 10) } }],
+            data: [{ $skip: 20 * parseInt(pageNum, 10) }, { $limit: 20 }],
+          },
+        },
+      ],
+    ).toArray((err, result) => {
+      if (result) {
+        const final = result[0].data.map((file) => {
+          const tmpFile = {
+            ...file,
+            id: file._id,
+          };
+          delete tmpFile._id;
+          delete tmpFile.localPath;
+          return tmpFile;
+        });
+          // console.log(final);
+        return response.status(200).json(final);
+      }
+      console.log('Error occured');
+      return response.status(404).json({ error: 'Not found' });
+    });
+    return null;
   }
 }
 
