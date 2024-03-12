@@ -39,7 +39,7 @@ function routesController(app) {
   router.put('/files/:id/publish', (req, res) => {
     FilesController.putPublish(req, res);
   });
-  router.put('/files/:id/publish', (req, res) => {
+  router.put('/files/:id/unpublish', (req, res) => {
     FilesController.putUnpublish(req, res);
   });
 }
